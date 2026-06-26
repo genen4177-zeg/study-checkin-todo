@@ -574,6 +574,10 @@
 
   <script>
     const STORAGE_KEY = "supervised-study-checkin-v1";
+    const SUPABASE_URL = "https://xovukhqlqxaslwbtibva.supabase.co";
+    const SUPABASE_KEY = "sb_publishable_ljzuM1rtrLGQ_5XTW4CXUw_XLRXnZux";
+    const SUPABASE_TABLE = "study_checkin_state";
+    const SHARED_STATE_ID = "shared";
     const BEIJING_TZ = "Asia/Shanghai";
     const CHECKINS = [
       { id: "shisan", name: "十三打卡", icon: "shisan-checkin-icon.jpg" },
@@ -614,8 +618,9 @@
       }, {})
     });
 
-    let state = loadState();
+    let state = loadCachedState();
     let editingTask = null;
+    let remoteReady = false;
 
     const elements = {
       beijingClock: document.getElementById("beijingClock"),
@@ -623,37 +628,97 @@
       todoBoard: document.getElementById("todoBoard")
     };
 
-    function loadState() {
+    function normalizeState(saved) {
       const fallback = defaultState();
-      try {
-        const saved = JSON.parse(localStorage.getItem(STORAGE_KEY));
-        if (!saved || typeof saved !== "object") {
-          return fallback;
-        }
-
-        const migratedTasks = Array.isArray(saved.tasks) ? saved.tasks : [];
-
-        return {
-          checkins: CHECKINS.reduce((items, item) => {
-            items[item.id] = {
-              ...emptyCheckin(),
-              ...(saved.checkins && saved.checkins[item.id] ? saved.checkins[item.id] : {})
-            };
-            return items;
-          }, {}),
-          todos: TODO_LISTS.reduce((items, item, index) => {
-            const existing = saved.todos && Array.isArray(saved.todos[item.id]) ? saved.todos[item.id] : null;
-            items[item.id] = existing || (index === 0 ? migratedTasks : []);
-            return items;
-          }, {})
-        };
-      } catch {
+      if (!saved || typeof saved !== "object") {
         return fallback;
+      }
+
+      const migratedTasks = Array.isArray(saved.tasks) ? saved.tasks : [];
+
+      return {
+        checkins: CHECKINS.reduce((items, item) => {
+          items[item.id] = {
+            ...emptyCheckin(),
+            ...(saved.checkins && saved.checkins[item.id] ? saved.checkins[item.id] : {})
+          };
+          return items;
+        }, {}),
+        todos: TODO_LISTS.reduce((items, item, index) => {
+          const existing = saved.todos && Array.isArray(saved.todos[item.id]) ? saved.todos[item.id] : null;
+          items[item.id] = existing || (index === 0 ? migratedTasks : []);
+          return items;
+        }, {})
+      };
+    }
+
+    function loadCachedState() {
+      try {
+        return normalizeState(JSON.parse(localStorage.getItem(STORAGE_KEY)));
+      } catch {
+        return defaultState();
       }
     }
 
-    function saveState() {
+    function cacheState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    async function fetchSharedState() {
+      const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?select=data&id=eq.${SHARED_STATE_ID}`, {
+        headers: {
+          apikey: SUPABASE_KEY,
+          Authorization: `Bearer ${SUPABASE_KEY}`
+        }
+      });
+      if (!response.ok) {
+        throw new Error(`读取云端数据失败：${response.status}`);
+      }
+
+      const rows = await response.json();
+      if (!rows.length) {
+        return defaultState();
+      }
+
+      return normalizeState(rows[0].data);
+    }
+
+    async function saveSharedState() {
+      cacheState();
+      try {
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?on_conflict=id`, {
+          method: "POST",
+          headers: {
+            apikey: SUPABASE_KEY,
+            Authorization: `Bearer ${SUPABASE_KEY}`,
+            "Content-Type": "application/json",
+            Prefer: "resolution=merge-duplicates,return=minimal"
+          },
+          body: JSON.stringify({
+            id: SHARED_STATE_ID,
+            data: state
+          })
+        });
+        if (!response.ok) {
+          throw new Error(`保存云端数据失败：${response.status}`);
+        }
+        remoteReady = true;
+      } catch (error) {
+        remoteReady = false;
+        console.warn(error);
+      }
+    }
+
+    async function hydrateSharedState() {
+      try {
+        state = await fetchSharedState();
+        remoteReady = true;
+        cacheState();
+        renderAll();
+      } catch (error) {
+        remoteReady = false;
+        console.warn(error);
+      }
     }
 
     function formatBeijingTime(timestamp) {
@@ -828,7 +893,7 @@
         checkin.elapsedMs = 0;
       }
 
-      saveState();
+      saveSharedState();
       renderCheckins();
     }
 
@@ -839,7 +904,7 @@
         completed: false,
         createdAt: Date.now()
       });
-      saveState();
+      saveSharedState();
       renderTodos();
     }
 
@@ -847,7 +912,7 @@
       state.todos[listId] = state.todos[listId].map((task) => (
         task.id === id ? { ...task, completed: !task.completed } : task
       ));
-      saveState();
+      saveSharedState();
       renderTodos();
     }
 
@@ -876,20 +941,20 @@
         task.id === id ? { ...task, text: value } : task
       ));
       editingTask = null;
-      saveState();
+      saveSharedState();
       renderTodos();
       return true;
     }
 
     function deleteTask(listId, id) {
       state.todos[listId] = state.todos[listId].filter((task) => task.id !== id);
-      saveState();
+      saveSharedState();
       renderTodos();
     }
 
     function clearCompleted(listId) {
       state.todos[listId] = state.todos[listId].filter((task) => !task.completed);
-      saveState();
+      saveSharedState();
       renderTodos();
     }
 
@@ -962,10 +1027,25 @@
     });
 
     renderAll();
+    hydrateSharedState();
     setInterval(() => {
       renderClock();
       renderCheckins();
     }, 1000);
+    setInterval(async () => {
+      if (editingTask) {
+        return;
+      }
+
+      try {
+        state = await fetchSharedState();
+        cacheState();
+        renderAll();
+      } catch (error) {
+        remoteReady = false;
+        console.warn(error);
+      }
+    }, 15000);
   </script>
 </body>
 </html>
