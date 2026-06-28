@@ -551,7 +551,10 @@
       padding: 16px;
       border: 1px solid rgba(31, 143, 255, 0.16);
       border-radius: 18px;
-      background: rgba(255, 255, 255, 0.94);
+      background:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 251, 255, 0.84));
+      background-position: center;
+      background-size: cover;
       box-shadow: var(--shadow);
       opacity: 0;
       pointer-events: none;
@@ -562,10 +565,16 @@
 
     .tomato-dock.left .tomato-popover {
       left: 66px;
+      background-image:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(225, 247, 255, 0.78)),
+        url("tomato-left-bg.jpg");
     }
 
     .tomato-dock.right .tomato-popover {
       right: 66px;
+      background-image:
+        linear-gradient(180deg, rgba(255, 255, 255, 0.88), rgba(255, 237, 242, 0.8)),
+        url("tomato-right-bg.jpg");
     }
 
     .tomato-dock:hover .tomato-popover,
@@ -908,6 +917,11 @@
         id: "change-20260628-tomato-independent",
         at: Date.now(),
         text: "番茄钟更新：左右两个番茄钟独立倒计时，并支持分别修改工作时间和休息时间。"
+      },
+      {
+        id: "change-20260628-tomato-bg",
+        at: Date.now(),
+        text: "番茄钟外观更新：把两张图片依次设置为左右番茄小窗口背景图。"
       },
       {
         id: "change-20260628-logs",
