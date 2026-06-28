@@ -514,6 +514,119 @@
       overflow-wrap: anywhere;
     }
 
+    .tomato-dock {
+      position: fixed;
+      top: 46%;
+      z-index: 20;
+      transform: translateY(-50%);
+    }
+
+    .tomato-dock.left {
+      left: 18px;
+    }
+
+    .tomato-dock.right {
+      right: 18px;
+    }
+
+    .tomato-button {
+      width: 54px;
+      height: 54px;
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: var(--shadow);
+      font-size: 32px;
+      line-height: 1;
+      transition: transform 160ms ease;
+    }
+
+    .tomato-dock:hover .tomato-button {
+      transform: scale(1.05);
+    }
+
+    .tomato-popover {
+      position: absolute;
+      top: 50%;
+      width: min(300px, calc(100vw - 86px));
+      padding: 16px;
+      border: 1px solid rgba(31, 143, 255, 0.16);
+      border-radius: 18px;
+      background: rgba(255, 255, 255, 0.94);
+      box-shadow: var(--shadow);
+      opacity: 0;
+      pointer-events: none;
+      transform: translateY(-50%) scale(0.98);
+      transition: opacity 160ms ease, transform 160ms ease;
+      backdrop-filter: blur(14px);
+    }
+
+    .tomato-dock.left .tomato-popover {
+      left: 66px;
+    }
+
+    .tomato-dock.right .tomato-popover {
+      right: 66px;
+    }
+
+    .tomato-dock:hover .tomato-popover,
+    .tomato-dock:focus-within .tomato-popover {
+      opacity: 1;
+      pointer-events: auto;
+      transform: translateY(-50%) scale(1);
+    }
+
+    .tomato-title {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+      margin: 0 0 10px;
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .tomato-status {
+      padding: 5px 9px;
+      border-radius: 999px;
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+      font-size: 12px;
+      white-space: nowrap;
+    }
+
+    .tomato-time {
+      margin: 8px 0 10px;
+      color: #e24752;
+      font-size: 42px;
+      font-weight: 900;
+      line-height: 1;
+      text-align: center;
+      font-variant-numeric: tabular-nums;
+    }
+
+    .tomato-note {
+      min-height: 42px;
+      margin: 0 0 13px;
+      color: var(--muted);
+      font-size: 13px;
+      line-height: 1.55;
+      text-align: center;
+    }
+
+    .tomato-actions {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+    }
+
+    .tomato-action {
+      min-height: 38px;
+      border-radius: 13px;
+      background: #edf6ff;
+      color: var(--primary-dark);
+      font-weight: 900;
+    }
+
     @media (max-width: 900px) {
       .hero,
       .checkin-list,
@@ -524,6 +637,39 @@
 
       .clock {
         min-width: 0;
+      }
+
+      .tomato-dock {
+        top: auto;
+        bottom: 16px;
+        transform: none;
+      }
+
+      .tomato-dock.left {
+        left: 12px;
+      }
+
+      .tomato-dock.right {
+        right: 12px;
+      }
+
+      .tomato-dock.left .tomato-popover {
+        top: auto;
+        bottom: 66px;
+        left: 0;
+        transform: scale(0.98);
+      }
+
+      .tomato-dock.right .tomato-popover {
+        top: auto;
+        right: 0;
+        bottom: 66px;
+        transform: scale(0.98);
+      }
+
+      .tomato-dock:hover .tomato-popover,
+      .tomato-dock:focus-within .tomato-popover {
+        transform: scale(1);
       }
     }
 
@@ -591,6 +737,38 @@
   </style>
 </head>
 <body>
+  <div class="tomato-dock left">
+    <button class="tomato-button" type="button" aria-label="打开番茄钟">🍅</button>
+    <section class="tomato-popover" aria-label="番茄钟">
+      <div class="tomato-title">
+        <span>番茄钟</span>
+        <span class="tomato-status" data-tomato-status>未开始</span>
+      </div>
+      <div class="tomato-time" data-tomato-time>60:00</div>
+      <p class="tomato-note" data-tomato-note>默认工作 60 分钟，休息 10 分钟。开始后会优先按正在进行的打卡开始时间计算。</p>
+      <div class="tomato-actions">
+        <button class="tomato-action" type="button" data-tomato-action="start">开始</button>
+        <button class="tomato-action" type="button" data-tomato-action="pause">暂停</button>
+        <button class="tomato-action" type="button" data-tomato-action="reset">重置</button>
+      </div>
+    </section>
+  </div>
+  <div class="tomato-dock right">
+    <button class="tomato-button" type="button" aria-label="打开番茄钟">🍅</button>
+    <section class="tomato-popover" aria-label="番茄钟">
+      <div class="tomato-title">
+        <span>番茄钟</span>
+        <span class="tomato-status" data-tomato-status>未开始</span>
+      </div>
+      <div class="tomato-time" data-tomato-time>60:00</div>
+      <p class="tomato-note" data-tomato-note>默认工作 60 分钟，休息 10 分钟。开始后会优先按正在进行的打卡开始时间计算。</p>
+      <div class="tomato-actions">
+        <button class="tomato-action" type="button" data-tomato-action="start">开始</button>
+        <button class="tomato-action" type="button" data-tomato-action="pause">暂停</button>
+        <button class="tomato-action" type="button" data-tomato-action="reset">重置</button>
+      </div>
+    </section>
+  </div>
   <main class="page">
     <section class="hero" aria-labelledby="app-title">
       <div>
@@ -643,6 +821,10 @@
     const SUPABASE_KEY = "sb_publishable_ljzuM1rtrLGQ_5XTW4CXUw_XLRXnZux";
     const SUPABASE_TABLE = "study_checkin_state";
     const SHARED_STATE_ID = "shared";
+    const TOMATO_STORAGE_KEY = "study-checkin-tomato-v1";
+    const TOMATO_WORK_MS = 60 * 60 * 1000;
+    const TOMATO_REST_MS = 10 * 60 * 1000;
+    const TOMATO_CYCLE_MS = TOMATO_WORK_MS + TOMATO_REST_MS;
     const BEIJING_TZ = "Asia/Shanghai";
     const CHECKINS = [
       { id: "shisan", name: "十三打卡", icon: "shisan-checkin-icon.jpg" },
@@ -665,6 +847,11 @@
       }
     ];
     const INITIAL_CHANGE_LOGS = [
+      {
+        id: "change-20260628-tomato",
+        at: Date.now(),
+        text: "添加左右番茄钟图标和悬浮小窗口：支持 60 分钟工作、10 分钟休息、开始、暂停、重置和浏览器通知提醒。"
+      },
       {
         id: "change-20260628-logs",
         at: Date.now(),
@@ -725,13 +912,18 @@
     let state = loadCachedState();
     let editingTask = null;
     let remoteReady = false;
+    let tomatoState = loadTomatoState();
 
     const elements = {
       beijingClock: document.getElementById("beijingClock"),
       checkinList: document.getElementById("checkinList"),
       todoBoard: document.getElementById("todoBoard"),
       usageLogList: document.getElementById("usageLogList"),
-      changeLogList: document.getElementById("changeLogList")
+      changeLogList: document.getElementById("changeLogList"),
+      tomatoTimes: [...document.querySelectorAll("[data-tomato-time]")],
+      tomatoStatuses: [...document.querySelectorAll("[data-tomato-status]")],
+      tomatoNotes: [...document.querySelectorAll("[data-tomato-note]")],
+      tomatoActions: [...document.querySelectorAll("[data-tomato-action]")]
     };
 
     function normalizeState(saved) {
@@ -791,6 +983,29 @@
 
     function cacheState() {
       localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+    }
+
+    function loadTomatoState() {
+      try {
+        return {
+          running: false,
+          startedAt: null,
+          pausedRemainingMs: TOMATO_WORK_MS,
+          lastNotifiedCycle: -1,
+          ...JSON.parse(localStorage.getItem(TOMATO_STORAGE_KEY))
+        };
+      } catch {
+        return {
+          running: false,
+          startedAt: null,
+          pausedRemainingMs: TOMATO_WORK_MS,
+          lastNotifiedCycle: -1
+        };
+      }
+    }
+
+    function saveTomatoState() {
+      localStorage.setItem(TOMATO_STORAGE_KEY, JSON.stringify(tomatoState));
     }
 
     async function fetchSharedState() {
@@ -878,12 +1093,156 @@
         .join(":");
     }
 
+    function formatCountdown(ms) {
+      const safeMs = Math.max(0, Number(ms) || 0);
+      const totalSeconds = Math.ceil(safeMs / 1000);
+      const minutes = Math.floor(totalSeconds / 60);
+      const seconds = totalSeconds % 60;
+      return `${String(minutes).padStart(2, "0")}:${String(seconds).padStart(2, "0")}`;
+    }
+
     function currentElapsed(checkin) {
       if (checkin.running && checkin.startAt) {
         return Date.now() - checkin.startAt;
       }
 
       return checkin.elapsedMs;
+    }
+
+    function activeCheckinStartAt() {
+      const running = CHECKINS
+        .map((item) => state.checkins[item.id])
+        .filter((checkin) => checkin && checkin.running && checkin.startAt)
+        .sort((a, b) => a.startAt - b.startAt);
+
+      return running[0]?.startAt || null;
+    }
+
+    function requestNotificationPermission() {
+      if (!("Notification" in window) || Notification.permission !== "default") {
+        return;
+      }
+
+      Notification.requestPermission().catch(() => {});
+    }
+
+    function sendTomatoNotification() {
+      if (!("Notification" in window) || Notification.permission !== "granted") {
+        return;
+      }
+
+      new Notification("番茄钟", {
+        body: "该打瓦了，别他妈学了！"
+      });
+    }
+
+    function tomatoSnapshot() {
+      if (!tomatoState.running || !tomatoState.startedAt) {
+        return {
+          phase: "work",
+          label: "未开始",
+          remainingMs: tomatoState.pausedRemainingMs || TOMATO_WORK_MS,
+          cycle: tomatoState.lastNotifiedCycle
+        };
+      }
+
+      const elapsed = Math.max(0, Date.now() - tomatoState.startedAt);
+      const cycle = Math.floor(elapsed / TOMATO_CYCLE_MS);
+      const cycleElapsed = elapsed % TOMATO_CYCLE_MS;
+      if (cycleElapsed < TOMATO_WORK_MS) {
+        return {
+          phase: "work",
+          label: "工作中",
+          remainingMs: TOMATO_WORK_MS - cycleElapsed,
+          cycle
+        };
+      }
+
+      return {
+        phase: "rest",
+        label: "休息中",
+        remainingMs: TOMATO_CYCLE_MS - cycleElapsed,
+        cycle
+      };
+    }
+
+    function maybeNotifyTomato(snapshot) {
+      if (!tomatoState.running || snapshot.phase !== "rest") {
+        return;
+      }
+
+      if (snapshot.cycle !== tomatoState.lastNotifiedCycle) {
+        tomatoState.lastNotifiedCycle = snapshot.cycle;
+        saveTomatoState();
+        sendTomatoNotification();
+        addUsageLog("番茄钟工作倒计时结束，已发送提醒。");
+        saveSharedState();
+        renderLogs();
+      }
+    }
+
+    function renderTomato() {
+      const snapshot = tomatoSnapshot();
+      maybeNotifyTomato(snapshot);
+      const note = tomatoState.running
+        ? (activeCheckinStartAt()
+          ? "按当前正在进行的打卡开始时间计算。"
+          : "按番茄钟开始时间计算。")
+        : "默认工作 60 分钟，休息 10 分钟。开始后会优先按正在进行的打卡开始时间计算。";
+
+      elements.tomatoTimes.forEach((item) => {
+        item.textContent = formatCountdown(snapshot.remainingMs);
+      });
+      elements.tomatoStatuses.forEach((item) => {
+        item.textContent = snapshot.label;
+      });
+      elements.tomatoNotes.forEach((item) => {
+        item.textContent = note;
+      });
+    }
+
+    function startTomato() {
+      const now = Date.now();
+      const checkinStartAt = activeCheckinStartAt();
+      tomatoState.running = true;
+      tomatoState.startedAt = checkinStartAt || (now - (TOMATO_WORK_MS - (tomatoState.pausedRemainingMs || TOMATO_WORK_MS)));
+      tomatoState.pausedRemainingMs = null;
+      tomatoState.lastNotifiedCycle = -1;
+      saveTomatoState();
+      addUsageLog("番茄钟开始。");
+      saveSharedState();
+      renderLogs();
+      renderTomato();
+    }
+
+    function pauseTomato() {
+      if (!tomatoState.running) {
+        return;
+      }
+
+      const snapshot = tomatoSnapshot();
+      tomatoState.running = false;
+      tomatoState.startedAt = null;
+      tomatoState.pausedRemainingMs = snapshot.remainingMs;
+      saveTomatoState();
+      addUsageLog(`番茄钟暂停，剩余 ${formatCountdown(snapshot.remainingMs)}。`);
+      saveSharedState();
+      renderLogs();
+      renderTomato();
+    }
+
+    function resetTomato() {
+      tomatoState = {
+        running: false,
+        startedAt: null,
+        pausedRemainingMs: TOMATO_WORK_MS,
+        lastNotifiedCycle: -1
+      };
+      saveTomatoState();
+      addUsageLog("番茄钟重置。");
+      saveSharedState();
+      renderLogs();
+      renderTomato();
     }
 
     function renderClock() {
@@ -1217,11 +1576,31 @@
       }
     });
 
+    elements.tomatoActions.forEach((button) => {
+      button.addEventListener("click", () => {
+        if (button.dataset.tomatoAction === "start") {
+          requestNotificationPermission();
+          startTomato();
+        }
+
+        if (button.dataset.tomatoAction === "pause") {
+          pauseTomato();
+        }
+
+        if (button.dataset.tomatoAction === "reset") {
+          resetTomato();
+        }
+      });
+    });
+
+    requestNotificationPermission();
     renderAll();
+    renderTomato();
     hydrateSharedState();
     setInterval(() => {
       renderClock();
       renderCheckins();
+      renderTomato();
     }, 1000);
     setInterval(async () => {
       if (editingTask) {
