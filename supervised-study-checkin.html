@@ -474,10 +474,51 @@
       background: rgba(247, 251, 255, 0.76);
     }
 
+    .logs-board {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 22px;
+      align-items: start;
+      margin-top: 22px;
+    }
+
+    .log-list {
+      display: grid;
+      gap: 10px;
+      max-height: 390px;
+      margin: 0;
+      padding: 22px;
+      overflow: auto;
+      list-style: none;
+    }
+
+    .log-item {
+      padding: 12px 14px;
+      border: 1px solid var(--line);
+      border-radius: 15px;
+      background: rgba(255, 255, 255, 0.92);
+      box-shadow: 0 8px 18px rgba(72, 130, 174, 0.07);
+    }
+
+    .log-time {
+      margin: 0 0 6px;
+      color: var(--primary-dark);
+      font-size: 13px;
+      font-weight: 800;
+    }
+
+    .log-text {
+      margin: 0;
+      color: var(--text);
+      line-height: 1.55;
+      overflow-wrap: anywhere;
+    }
+
     @media (max-width: 900px) {
       .hero,
       .checkin-list,
-      .todo-board {
+      .todo-board,
+      .logs-board {
         grid-template-columns: 1fr;
       }
 
@@ -574,6 +615,26 @@
     </section>
 
     <section class="todo-board" id="todoBoard" aria-label="待办清单"></section>
+    <section class="logs-board" aria-label="使用日志和修改日志">
+      <section class="panel log-panel" aria-labelledby="usage-log-title">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" id="usage-log-title">使用日志</h2>
+            <p class="panel-note">自动记录每次打卡和任务操作。</p>
+          </div>
+        </div>
+        <ul class="log-list" id="usageLogList"></ul>
+      </section>
+      <section class="panel log-panel" aria-labelledby="change-log-title">
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title" id="change-log-title">修改日志</h2>
+            <p class="panel-note">记录网站功能的添加、减少和调整。</p>
+          </div>
+        </div>
+        <ul class="log-list" id="changeLogList"></ul>
+      </section>
+    </section>
   </main>
 
   <script>
@@ -603,6 +664,43 @@
         empty: "小根还没有任务，先写下一个目标。"
       }
     ];
+    const INITIAL_CHANGE_LOGS = [
+      {
+        id: "change-20260628-logs",
+        at: Date.now(),
+        text: "添加使用日志和修改日志：使用日志自动记录打卡与任务操作，修改日志记录网站功能变更。"
+      },
+      {
+        id: "change-20260628-click-input",
+        at: Date.parse("2026-06-28T08:48:39Z"),
+        text: "修复点击不灵敏：放大待办复选框，支持点击任务整行切换完成状态；移除任务输入长度限制。"
+      },
+      {
+        id: "change-20260626-shared",
+        at: Date.parse("2026-06-26T06:45:28Z"),
+        text: "接入 Supabase 云端共享数据，所有人访问同一个线上页面时读写同一份公开数据。"
+      },
+      {
+        id: "change-20260626-edit",
+        at: Date.parse("2026-06-26T05:24:02Z"),
+        text: "添加任务编辑功能：已添加的任务可编辑、保存或取消。"
+      },
+      {
+        id: "change-20260626-icons",
+        at: Date.parse("2026-06-26T05:16:05Z"),
+        text: "为打卡标题和待办标题添加图片图标。"
+      },
+      {
+        id: "change-20260626-deploy",
+        at: Date.parse("2026-06-26T05:55:32Z"),
+        text: "发布 GitHub Pages 永久在线网页。"
+      },
+      {
+        id: "change-20260626-initial",
+        at: Date.parse("2026-06-26T04:40:24Z"),
+        text: "创建监督学习打卡与待办事项网页：两个打卡框、两个待办清单、本地存储、响应式布局和背景图。"
+      }
+    ];
 
     const emptyCheckin = () => ({
       running: false,
@@ -619,7 +717,9 @@
       todos: TODO_LISTS.reduce((items, item) => {
         items[item.id] = [];
         return items;
-      }, {})
+      }, {}),
+      usageLogs: [],
+      changeLogs: INITIAL_CHANGE_LOGS
     });
 
     let state = loadCachedState();
@@ -629,7 +729,9 @@
     const elements = {
       beijingClock: document.getElementById("beijingClock"),
       checkinList: document.getElementById("checkinList"),
-      todoBoard: document.getElementById("todoBoard")
+      todoBoard: document.getElementById("todoBoard"),
+      usageLogList: document.getElementById("usageLogList"),
+      changeLogList: document.getElementById("changeLogList")
     };
 
     function normalizeState(saved) {
@@ -652,8 +754,31 @@
           const existing = saved.todos && Array.isArray(saved.todos[item.id]) ? saved.todos[item.id] : null;
           items[item.id] = existing || (index === 0 ? migratedTasks : []);
           return items;
-        }, {})
+        }, {}),
+        usageLogs: limitLogs(Array.isArray(saved.usageLogs) ? saved.usageLogs : []),
+        changeLogs: mergeChangeLogs(saved.changeLogs)
       };
+    }
+
+    function limitLogs(logs) {
+      return logs
+        .filter((log) => log && log.text)
+        .sort((a, b) => (b.at || 0) - (a.at || 0))
+        .slice(0, 100);
+    }
+
+    function mergeChangeLogs(savedLogs) {
+      const byId = new Map();
+      INITIAL_CHANGE_LOGS.forEach((log) => byId.set(log.id, log));
+      if (Array.isArray(savedLogs)) {
+        savedLogs.forEach((log) => {
+          if (log && log.id) {
+            byId.set(log.id, log);
+          }
+        });
+      }
+
+      return limitLogs([...byId.values()]);
     }
 
     function loadCachedState() {
@@ -867,10 +992,30 @@
       }).join("");
     }
 
+    function renderLogList(element, logs, emptyText) {
+      const items = limitLogs(logs);
+      element.innerHTML = items.length ? items.map((log) => `
+        <li class="log-item">
+          <p class="log-time">${formatBeijingTime(log.at)}</p>
+          <p class="log-text">${escapeHtml(log.text)}</p>
+        </li>
+      `).join("") : `
+        <li class="log-item">
+          <p class="log-text">${emptyText}</p>
+        </li>
+      `;
+    }
+
+    function renderLogs() {
+      renderLogList(elements.usageLogList, state.usageLogs || [], "还没有使用记录。");
+      renderLogList(elements.changeLogList, state.changeLogs || [], "还没有修改记录。");
+    }
+
     function renderAll() {
       renderClock();
       renderCheckins();
       renderTodos();
+      renderLogs();
     }
 
     function escapeHtml(value) {
@@ -882,6 +1027,25 @@
         .replaceAll("'", "&#039;");
     }
 
+    function listName(listId) {
+      return TODO_LISTS.find((list) => list.id === listId)?.title || listId;
+    }
+
+    function checkinName(checkinId) {
+      return CHECKINS.find((item) => item.id === checkinId)?.name || checkinId;
+    }
+
+    function addUsageLog(text) {
+      state.usageLogs = limitLogs([
+        {
+          id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
+          at: Date.now(),
+          text
+        },
+        ...(state.usageLogs || [])
+      ]);
+    }
+
     function toggleCheckin(id) {
       const checkin = state.checkins[id];
       const now = Date.now();
@@ -890,15 +1054,17 @@
         checkin.running = false;
         checkin.endAt = now;
         checkin.elapsedMs = now - checkin.startAt;
+        addUsageLog(`${checkinName(id)} 结束打卡，用时 ${formatDuration(checkin.elapsedMs)}。`);
       } else {
         checkin.running = true;
         checkin.startAt = now;
         checkin.endAt = null;
         checkin.elapsedMs = 0;
+        addUsageLog(`${checkinName(id)} 开始打卡。`);
       }
 
       saveSharedState();
-      renderCheckins();
+      renderAll();
     }
 
     function addTask(listId, text) {
@@ -908,16 +1074,22 @@
         completed: false,
         createdAt: Date.now()
       });
+      addUsageLog(`${listName(listId)} 添加任务：“${text}”。`);
       saveSharedState();
-      renderTodos();
+      renderAll();
     }
 
     function toggleTask(listId, id) {
+      const task = state.todos[listId].find((item) => item.id === id);
+      const nextCompleted = task ? !task.completed : false;
       state.todos[listId] = state.todos[listId].map((task) => (
         task.id === id ? { ...task, completed: !task.completed } : task
       ));
+      if (task) {
+        addUsageLog(`${listName(listId)} ${nextCompleted ? "完成" : "取消完成"}任务：“${task.text}”。`);
+      }
       saveSharedState();
-      renderTodos();
+      renderAll();
     }
 
     function startEditTask(listId, id) {
@@ -941,25 +1113,35 @@
         return false;
       }
 
+      const oldTask = state.todos[listId].find((task) => task.id === id);
       state.todos[listId] = state.todos[listId].map((task) => (
         task.id === id ? { ...task, text: value } : task
       ));
       editingTask = null;
+      if (oldTask) {
+        addUsageLog(`${listName(listId)} 编辑任务：“${oldTask.text}” 改为 “${value}”。`);
+      }
       saveSharedState();
-      renderTodos();
+      renderAll();
       return true;
     }
 
     function deleteTask(listId, id) {
+      const task = state.todos[listId].find((item) => item.id === id);
       state.todos[listId] = state.todos[listId].filter((task) => task.id !== id);
+      if (task) {
+        addUsageLog(`${listName(listId)} 删除任务：“${task.text}”。`);
+      }
       saveSharedState();
-      renderTodos();
+      renderAll();
     }
 
     function clearCompleted(listId) {
+      const completedCount = state.todos[listId].filter((task) => task.completed).length;
       state.todos[listId] = state.todos[listId].filter((task) => !task.completed);
+      addUsageLog(`${listName(listId)} 清空已完成任务 ${completedCount} 个。`);
       saveSharedState();
-      renderTodos();
+      renderAll();
     }
 
     elements.checkinList.addEventListener("click", (event) => {
