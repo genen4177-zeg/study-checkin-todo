@@ -815,16 +815,15 @@
     async function saveSharedState() {
       cacheState();
       try {
-        const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?on_conflict=id`, {
-          method: "POST",
+        const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${SHARED_STATE_ID}`, {
+          method: "PATCH",
           headers: {
             apikey: SUPABASE_KEY,
             Authorization: `Bearer ${SUPABASE_KEY}`,
-            "Content-Type": "application/json",
-            Prefer: "resolution=merge-duplicates,return=minimal"
+            "Content-Type": "application/json; charset=utf-8",
+            Prefer: "return=minimal"
           },
           body: JSON.stringify({
-            id: SHARED_STATE_ID,
             data: state
           })
         });
