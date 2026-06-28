@@ -185,6 +185,7 @@
       border-radius: 18px;
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 251, 255, 0.9) 100%);
       box-shadow: 0 10px 26px rgba(72, 130, 174, 0.1);
+      cursor: pointer;
     }
 
     .checkin-head {
@@ -377,17 +378,18 @@
       grid-template-columns: auto minmax(0, 1fr) auto;
       gap: 12px;
       align-items: center;
-      min-height: 54px;
-      padding: 12px;
+      min-height: 62px;
+      padding: 14px;
       border: 1px solid var(--line);
       border-radius: 16px;
       background: rgba(255, 255, 255, 0.95);
       box-shadow: 0 8px 18px rgba(72, 130, 174, 0.08);
+      cursor: pointer;
     }
 
     .todo-checkbox {
-      width: 21px;
-      height: 21px;
+      width: 28px;
+      height: 28px;
       accent-color: var(--primary);
       cursor: pointer;
     }
@@ -408,6 +410,7 @@
       display: flex;
       gap: 8px;
       align-items: center;
+      cursor: default;
     }
 
     .edit-form {
@@ -416,6 +419,7 @@
       grid-template-columns: minmax(0, 1fr) auto;
       gap: 10px;
       align-items: center;
+      cursor: default;
     }
 
     .edit-input {
@@ -770,7 +774,7 @@
         const buttonText = checkin.running ? "结束打卡" : "开始打卡";
 
         return `
-          <article class="checkin-card">
+          <article class="checkin-card" data-checkin-card="${item.id}">
             <div class="checkin-head">
               <h3 class="checkin-name title-with-icon">
                 <img class="title-icon" src="${item.icon}" alt="" />
@@ -820,7 +824,7 @@
               </div>
             </div>
             <form class="todo-form" data-todo-form="${list.id}">
-              <input class="todo-input" type="text" maxlength="80" placeholder="${list.placeholder}" autocomplete="off" />
+              <input class="todo-input" type="text" placeholder="${list.placeholder}" autocomplete="off" />
               <button class="add-button" type="submit">➕ 添加任务</button>
             </form>
             <div class="stats" aria-label="${list.title}统计">
@@ -841,7 +845,7 @@
                   <input class="todo-checkbox" type="checkbox" ${task.completed ? "checked" : ""} ${isEditing ? "disabled" : ""} aria-label="标记任务完成" />
                   ${isEditing ? `
                     <form class="edit-form" data-edit-form="${list.id}" data-task-id="${task.id}">
-                      <input class="edit-input" type="text" maxlength="80" value="${escapeHtml(task.text)}" aria-label="编辑任务内容" />
+                      <input class="edit-input" type="text" value="${escapeHtml(task.text)}" aria-label="编辑任务内容" />
                       <div class="edit-actions">
                         <button class="save-button" type="submit">保存</button>
                         <button class="cancel-button" type="button" data-cancel-edit>取消</button>
@@ -959,12 +963,12 @@
     }
 
     elements.checkinList.addEventListener("click", (event) => {
-      const button = event.target.closest("[data-checkin]");
-      if (!button) {
+      const target = event.target.closest("[data-checkin], [data-checkin-card]");
+      if (!target) {
         return;
       }
 
-      toggleCheckin(button.dataset.checkin);
+      toggleCheckin(target.dataset.checkin || target.dataset.checkinCard);
     });
 
     elements.todoBoard.addEventListener("submit", (event) => {
@@ -1017,12 +1021,18 @@
         return;
       }
 
-      if (event.target.matches(".todo-checkbox")) {
-        toggleTask(item.dataset.listId, item.dataset.taskId);
-      }
-
       if (event.target.matches(".delete-button")) {
         deleteTask(item.dataset.listId, item.dataset.taskId);
+        return;
+      }
+
+      if (event.target.matches(".todo-checkbox")) {
+        toggleTask(item.dataset.listId, item.dataset.taskId);
+        return;
+      }
+
+      if (!event.target.closest(".task-actions, .edit-form, button, input")) {
+        toggleTask(item.dataset.listId, item.dataset.taskId);
       }
     });
 
