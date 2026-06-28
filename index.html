@@ -540,6 +540,26 @@
       transition: transform 160ms ease;
     }
 
+    .tomato-sound-stop {
+      display: grid;
+      width: 38px;
+      height: 38px;
+      margin: 9px auto 0;
+      place-items: center;
+      border: 1px solid rgba(31, 143, 255, 0.16);
+      border-radius: 50%;
+      background: rgba(255, 255, 255, 0.86);
+      box-shadow: 0 8px 18px rgba(72, 130, 174, 0.14);
+      font-size: 20px;
+      line-height: 1;
+      transition: transform 160ms ease, background 160ms ease;
+    }
+
+    .tomato-sound-stop:hover {
+      background: rgba(237, 246, 255, 0.96);
+      transform: scale(1.06);
+    }
+
     .tomato-dock:hover .tomato-button {
       transform: scale(1.05);
     }
@@ -780,6 +800,7 @@
 <body>
   <div class="tomato-dock left" data-tomato-id="left">
     <button class="tomato-button" type="button" aria-label="打开番茄钟">🍅</button>
+    <button class="tomato-sound-stop" type="button" data-tomato-sound-stop aria-label="停止左侧番茄钟提示音">🎵</button>
     <section class="tomato-popover" aria-label="番茄钟">
       <div class="tomato-title">
         <span>番茄钟</span>
@@ -806,6 +827,7 @@
   </div>
   <div class="tomato-dock right" data-tomato-id="right">
     <button class="tomato-button" type="button" aria-label="打开番茄钟">🍅</button>
+    <button class="tomato-sound-stop" type="button" data-tomato-sound-stop aria-label="停止右侧番茄钟提示音">🎵</button>
     <section class="tomato-popover" aria-label="番茄钟">
       <div class="tomato-title">
         <span>番茄钟</span>
@@ -884,6 +906,10 @@
     const SHARED_STATE_ID = "shared";
     const TOMATO_STORAGE_KEY = "study-checkin-tomato-v1";
     const TOMATO_IDS = ["left", "right"];
+    const TOMATO_SOUND_FILES = {
+      left: "tomato-left-tone.mp3",
+      right: "tomato-right-tone.mp3"
+    };
     const DEFAULT_TOMATO_WORK_MINUTES = 60;
     const DEFAULT_TOMATO_REST_MINUTES = 10;
     const BEIJING_TZ = "Asia/Shanghai";
@@ -927,6 +953,11 @@
         id: "change-20260628-tomato-bg-strong",
         at: Date.now(),
         text: "番茄钟外观更新：加重两个小窗口背景图颜色，减少白色遮罩透明感。"
+      },
+      {
+        id: "change-20260628-tomato-sound",
+        at: Date.now(),
+        text: "番茄钟功能更新：左右倒计时结束时分别播放提示音，并在番茄图标下添加音乐停止按钮。"
       },
       {
         id: "change-20260628-logs",
@@ -989,6 +1020,7 @@
     let editingTask = null;
     let remoteReady = false;
     let tomatoState = loadTomatoState();
+    const tomatoSounds = {};
 
     const elements = {
       beijingClock: document.getElementById("beijingClock"),
@@ -1271,6 +1303,52 @@
       });
     }
 
+    function getTomatoSound(id) {
+      if (!tomatoSounds[id]) {
+        const audio = new Audio(TOMATO_SOUND_FILES[id]);
+        audio.preload = "auto";
+        tomatoSounds[id] = audio;
+      }
+
+      return tomatoSounds[id];
+    }
+
+    function unlockTomatoSound(id) {
+      const audio = getTomatoSound(id);
+      const originalMuted = audio.muted;
+      audio.muted = true;
+      audio.currentTime = 0;
+      audio.play()
+        .then(() => {
+          audio.pause();
+          audio.currentTime = 0;
+          audio.muted = originalMuted;
+        })
+        .catch(() => {
+          audio.muted = originalMuted;
+        });
+    }
+
+    function playTomatoSound(id) {
+      const audio = getTomatoSound(id);
+      audio.pause();
+      audio.currentTime = 0;
+      audio.muted = false;
+      audio.play().catch((error) => {
+        console.warn(error);
+      });
+    }
+
+    function stopTomatoSound(id) {
+      const audio = tomatoSounds[id];
+      if (!audio) {
+        return;
+      }
+
+      audio.pause();
+      audio.currentTime = 0;
+    }
+
     function tomatoSnapshot(id) {
       const timer = getTomato(id);
       const workMs = tomatoWorkMs(timer);
@@ -1323,6 +1401,7 @@
         timer.lastNotifiedCycle = snapshot.cycle;
         saveTomatoState();
         sendTomatoNotification();
+        playTomatoSound(id);
         addUsageLog(`${tomatoLabel(id)} 工作倒计时结束，已发送提醒。`);
         saveSharedState();
         renderLogs();
@@ -1781,6 +1860,11 @@
       const tomatoId = dock.dataset.tomatoId;
 
       dock.addEventListener("click", (event) => {
+        if (event.target.closest("[data-tomato-sound-stop]")) {
+          stopTomatoSound(tomatoId);
+          return;
+        }
+
         const button = event.target.closest("[data-tomato-action]");
         if (!button) {
           return;
@@ -1788,6 +1872,7 @@
 
         if (button.dataset.tomatoAction === "start") {
           requestNotificationPermission();
+          unlockTomatoSound(tomatoId);
           startTomato(tomatoId);
         }
 
