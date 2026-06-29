@@ -1000,7 +1000,7 @@
       <div>
         <p class="eyebrow">小八正在监督你！</p>
         <h1 id="app-title">十三 小根 你俩还不学习！！</h1>
-        <p class="subtitle">记录十三和小根的学习打卡，管理各自的任务进度。数据保存在本机浏览器，刷新后仍会保留。</p>
+        <p class="subtitle">记录十三和小根的学习打卡，管理各自的任务进度。数据保存在云端，刷新和重新打开后仍会保留。</p>
       </div>
       <aside class="clock" aria-label="当前北京时间">
         <p class="clock-label">当前北京时间</p>
@@ -1024,7 +1024,7 @@
         <div class="panel-header">
           <div>
             <h2 class="panel-title" id="usage-log-title">使用日志</h2>
-            <p class="panel-note">自动记录每次打卡和任务操作。</p>
+            <p class="panel-note">自动记录每次打卡和番茄钟使用情况。</p>
           </div>
         </div>
         <ul class="log-list" id="usageLogList"></ul>
@@ -1131,6 +1131,11 @@
         id: "change-20260629-role-lock",
         at: Date.now(),
         text: "添加用户隔离：先选角色再进入网站，只能操作自己对应版块，同时保持另一侧同步可见。"
+      },
+      {
+        id: "change-20260629-usage-log-filter",
+        at: Date.parse("2026-06-29T19:30:00+08:00"),
+        text: "调整使用日志：只记录打卡和番茄钟使用情况，不再记录待办添加、编辑、删除等操作。"
       },
       {
         id: "change-20260628-logs",
