@@ -158,6 +158,8 @@
     }
 
     body[data-role="xiaogen"] .role-shout {
+      left: auto;
+      right: 84px;
       color: #1f8fff;
       text-shadow:
         3px 3px 0 #ffffff,
@@ -823,6 +825,10 @@
         font-size: 24px;
       }
 
+      body[data-role="xiaogen"] .role-shout {
+        right: 10px;
+      }
+
       .tomato-dock {
         top: auto;
         bottom: 16px;
@@ -1147,6 +1153,11 @@
         id: "change-20260629-login-every-load",
         at: Date.parse("2026-06-29T20:00:00+08:00"),
         text: "调整登录方式：每次刷新或重新打开页面都需要重新选择十三或小根角色。"
+      },
+      {
+        id: "change-20260629-xiaogen-shout-right",
+        at: Date.parse("2026-06-29T20:10:00+08:00"),
+        text: "调整角色提示：小根登录后的“小根来睡觉了！”移动到右侧空白处显示。"
       },
       {
         id: "change-20260628-logs",
