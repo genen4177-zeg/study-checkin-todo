@@ -1045,7 +1045,6 @@
 
   <script>
     const STORAGE_KEY = "supervised-study-checkin-v1";
-    const ROLE_SESSION_KEY = "study-checkin-role-v1";
     const SUPABASE_URL = "https://xovukhqlqxaslwbtibva.supabase.co";
     const SUPABASE_KEY = "sb_publishable_ljzuM1rtrLGQ_5XTW4CXUw_XLRXnZux";
     const SUPABASE_TABLE = "study_checkin_state";
@@ -1143,6 +1142,11 @@
         id: "change-20260629-tab-brand",
         at: Date.parse("2026-06-29T19:45:00+08:00"),
         text: "更新浏览器标签页：页面名称改为番茄小八，并添加可爱番茄图标。"
+      },
+      {
+        id: "change-20260629-login-every-load",
+        at: Date.parse("2026-06-29T20:00:00+08:00"),
+        text: "调整登录方式：每次刷新或重新打开页面都需要重新选择十三或小根角色。"
       },
       {
         id: "change-20260628-logs",
@@ -1248,7 +1252,6 @@
       }
 
       selectedRole = roleId;
-      sessionStorage.setItem(ROLE_SESSION_KEY, roleId);
       document.body.classList.remove("auth-locked");
       document.body.dataset.role = roleId;
       elements.roleShoutText.textContent = ROLES[roleId].shout;
@@ -2294,12 +2297,6 @@
         updateTomatoDurations(tomatoId, workInput.value, restInput.value);
       });
     });
-
-    const savedRole = sessionStorage.getItem(ROLE_SESSION_KEY);
-    if (savedRole && ROLES[savedRole]) {
-      selectedRole = savedRole;
-      applyRoleLock();
-    }
 
     elements.loginScreen.querySelectorAll("[data-role-select]").forEach((button) => {
       button.addEventListener("click", () => {
