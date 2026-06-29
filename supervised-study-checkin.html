@@ -47,6 +47,13 @@
       background: rgba(255, 255, 255, 0.12);
     }
 
+    body.auth-locked .page,
+    body.auth-locked .tomato-dock,
+    body.auth-locked .role-shout {
+      opacity: 0;
+      pointer-events: none;
+    }
+
     button,
     input {
       font: inherit;
@@ -60,6 +67,104 @@
     button:disabled {
       cursor: not-allowed;
       opacity: 0.54;
+    }
+
+    .login-screen {
+      position: fixed;
+      inset: 0;
+      z-index: 100;
+      display: none;
+      place-items: center;
+      padding: 24px;
+      background:
+        linear-gradient(180deg, rgba(238, 248, 255, 0.92), rgba(255, 242, 248, 0.9)),
+        url("cute-background.jpg");
+      background-position: center;
+      background-size: cover;
+    }
+
+    body.auth-locked .login-screen {
+      display: grid;
+    }
+
+    .login-card {
+      width: min(520px, 100%);
+      padding: 30px;
+      border: 1px solid rgba(31, 143, 255, 0.18);
+      border-radius: 26px;
+      background: rgba(255, 255, 255, 0.88);
+      box-shadow: var(--shadow);
+      text-align: center;
+      backdrop-filter: blur(16px);
+    }
+
+    .login-card h1 {
+      font-size: clamp(30px, 7vw, 48px);
+    }
+
+    .login-note {
+      margin: 12px 0 24px;
+      color: var(--muted);
+      line-height: 1.7;
+    }
+
+    .role-choices {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 14px;
+    }
+
+    .role-choice {
+      min-height: 92px;
+      padding: 16px;
+      border: 2px solid rgba(31, 143, 255, 0.16);
+      border-radius: 22px;
+      background: linear-gradient(180deg, #ffffff, #edf7ff);
+      color: var(--primary-dark);
+      font-size: 24px;
+      font-weight: 900;
+      box-shadow: 0 12px 24px rgba(72, 130, 174, 0.14);
+      transition: transform 160ms ease, box-shadow 160ms ease;
+    }
+
+    .role-choice:hover {
+      transform: translateY(-2px) rotate(-1deg);
+      box-shadow: 0 18px 30px rgba(72, 130, 174, 0.2);
+    }
+
+    .role-choice:nth-child(2):hover {
+      transform: translateY(-2px) rotate(1deg);
+    }
+
+    .role-shout {
+      position: fixed;
+      left: 84px;
+      top: 18%;
+      z-index: 18;
+      color: #ff5d91;
+      font-size: clamp(28px, 3.2vw, 42px);
+      font-weight: 1000;
+      letter-spacing: 0;
+      line-height: 1.1;
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      text-shadow:
+        3px 3px 0 #ffffff,
+        6px 6px 0 rgba(31, 143, 255, 0.28),
+        0 10px 26px rgba(255, 93, 145, 0.36);
+      pointer-events: none;
+    }
+
+    body[data-role="xiaogen"] .role-shout {
+      color: #1f8fff;
+      text-shadow:
+        3px 3px 0 #ffffff,
+        6px 6px 0 rgba(255, 93, 145, 0.24),
+        0 10px 26px rgba(31, 143, 255, 0.36);
+    }
+
+    .role-shout[hidden] {
+      display: none;
     }
 
     .page {
@@ -186,6 +291,16 @@
       background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(247, 251, 255, 0.9) 100%);
       box-shadow: 0 10px 26px rgba(72, 130, 174, 0.1);
       cursor: pointer;
+    }
+
+    .role-locked {
+      opacity: 0.68;
+      cursor: default;
+    }
+
+    .role-locked input,
+    .role-locked button {
+      cursor: not-allowed;
     }
 
     .checkin-head {
@@ -700,6 +815,12 @@
         min-width: 0;
       }
 
+      .role-shout {
+        left: 10px;
+        top: 90px;
+        font-size: 24px;
+      }
+
       .tomato-dock {
         top: auto;
         bottom: 16px;
@@ -738,6 +859,14 @@
       .page {
         width: min(100% - 20px, 1180px);
         padding: 24px 0 30px;
+      }
+
+      .login-card {
+        padding: 22px;
+      }
+
+      .role-choices {
+        grid-template-columns: 1fr;
       }
 
       .panel-header,
@@ -797,7 +926,21 @@
     }
   </style>
 </head>
-<body>
+<body class="auth-locked">
+  <section class="login-screen" id="loginScreen" aria-labelledby="login-title">
+    <div class="login-card">
+      <p class="eyebrow">小八正在点名！</p>
+      <h1 id="login-title">今天是谁来学习？</h1>
+      <p class="login-note">选好角色后进入自己的学习区。</p>
+      <div class="role-choices">
+        <button class="role-choice" type="button" data-role-select="shisan">十三</button>
+        <button class="role-choice" type="button" data-role-select="xiaogen">小根</button>
+      </div>
+    </div>
+  </section>
+  <div class="role-shout" id="roleShout" hidden>
+    <span id="roleShoutText"></span>
+  </div>
   <div class="tomato-dock left" data-tomato-id="left">
     <button class="tomato-button" type="button" aria-label="打开番茄钟">🍅</button>
     <button class="tomato-sound-stop" type="button" data-tomato-sound-stop aria-label="停止左侧番茄钟提示音">🎵</button>
@@ -900,15 +1043,35 @@
 
   <script>
     const STORAGE_KEY = "supervised-study-checkin-v1";
+    const ROLE_SESSION_KEY = "study-checkin-role-v1";
     const SUPABASE_URL = "https://xovukhqlqxaslwbtibva.supabase.co";
     const SUPABASE_KEY = "sb_publishable_ljzuM1rtrLGQ_5XTW4CXUw_XLRXnZux";
     const SUPABASE_TABLE = "study_checkin_state";
     const SHARED_STATE_ID = "shared";
     const TOMATO_STORAGE_KEY = "study-checkin-tomato-v1";
+    const TOMATO_NOTICE_STORAGE_KEY = "study-checkin-tomato-notices-v1";
     const TOMATO_IDS = ["left", "right"];
     const TOMATO_SOUND_FILES = {
       left: "tomato-left-tone.mp3",
       right: "tomato-right-tone.mp3"
+    };
+    const ROLES = {
+      shisan: {
+        label: "十三",
+        ownerId: "shisan",
+        tomatoId: "left",
+        shout: "十三来闭关了！"
+      },
+      xiaogen: {
+        label: "小根",
+        ownerId: "xiaogen",
+        tomatoId: "right",
+        shout: "小根来睡觉了！"
+      }
+    };
+    const ROLE_BY_TOMATO = {
+      left: "shisan",
+      right: "xiaogen"
     };
     const DEFAULT_TOMATO_WORK_MINUTES = 60;
     const DEFAULT_TOMATO_REST_MINUTES = 10;
@@ -965,6 +1128,11 @@
         text: "番茄钟外观更新：左侧标题改为十三番茄钟，右侧标题改为小根番茄钟。"
       },
       {
+        id: "change-20260629-role-lock",
+        at: Date.now(),
+        text: "添加用户隔离：先选角色再进入网站，只能操作自己对应版块，同时保持另一侧同步可见。"
+      },
+      {
         id: "change-20260628-logs",
         at: Date.now(),
         text: "添加使用日志和修改日志：使用日志自动记录打卡与任务操作，修改日志记录网站功能变更。"
@@ -1017,6 +1185,7 @@
         items[item.id] = [];
         return items;
       }, {}),
+      tomatoes: normalizeTomatoState(),
       usageLogs: [],
       changeLogs: INITIAL_CHANGE_LOGS
     });
@@ -1024,10 +1193,15 @@
     let state = loadCachedState();
     let editingTask = null;
     let remoteReady = false;
-    let tomatoState = loadTomatoState();
+    let selectedRole = null;
+    let tomatoState = state.tomatoes;
+    let tomatoNotices = loadTomatoNotices();
     const tomatoSounds = {};
 
     const elements = {
+      loginScreen: document.getElementById("loginScreen"),
+      roleShout: document.getElementById("roleShout"),
+      roleShoutText: document.getElementById("roleShoutText"),
       beijingClock: document.getElementById("beijingClock"),
       checkinList: document.getElementById("checkinList"),
       todoBoard: document.getElementById("todoBoard"),
@@ -1035,6 +1209,42 @@
       changeLogList: document.getElementById("changeLogList"),
       tomatoDocks: [...document.querySelectorAll("[data-tomato-id]")]
     };
+
+    function currentRole() {
+      return selectedRole ? ROLES[selectedRole] : null;
+    }
+
+    function canUseOwner(ownerId) {
+      return currentRole()?.ownerId === ownerId;
+    }
+
+    function canUseTomato(id) {
+      return currentRole()?.tomatoId === id;
+    }
+
+    function canWriteCheckin(id) {
+      return currentRole()?.ownerId === id;
+    }
+
+    function canWriteTodo(id) {
+      return currentRole()?.ownerId === id;
+    }
+
+    function selectRole(roleId) {
+      if (!ROLES[roleId]) {
+        return;
+      }
+
+      selectedRole = roleId;
+      sessionStorage.setItem(ROLE_SESSION_KEY, roleId);
+      document.body.classList.remove("auth-locked");
+      document.body.dataset.role = roleId;
+      elements.roleShoutText.textContent = ROLES[roleId].shout;
+      elements.roleShout.hidden = false;
+      TOMATO_IDS.filter((id) => !canUseTomato(id)).forEach(stopTomatoSound);
+      renderAll();
+      renderTomatoes();
+    }
 
     function normalizeState(saved) {
       const fallback = defaultState();
@@ -1057,7 +1267,8 @@
           items[item.id] = existing || (index === 0 ? migratedTasks : []);
           return items;
         }, {}),
-        usageLogs: limitLogs(Array.isArray(saved.usageLogs) ? saved.usageLogs : []),
+        tomatoes: normalizeTomatoState(saved.tomatoes),
+        usageLogs: normalizeUsageLogs(saved.usageLogs),
         changeLogs: mergeChangeLogs(saved.changeLogs)
       };
     }
@@ -1131,6 +1342,44 @@
       }
     }
 
+    function loadTomatoNotices() {
+      try {
+        const saved = JSON.parse(localStorage.getItem(TOMATO_NOTICE_STORAGE_KEY));
+        return saved && typeof saved === "object" ? saved : {};
+      } catch {
+        return {};
+      }
+    }
+
+    function saveTomatoNotices() {
+      localStorage.setItem(TOMATO_NOTICE_STORAGE_KEY, JSON.stringify(tomatoNotices));
+    }
+
+    function ensureRoleNotice(id) {
+      if (!tomatoNotices[id]) {
+        tomatoNotices[id] = { lastCycle: -1 };
+      }
+      return tomatoNotices[id];
+    }
+
+    function isUsageLogRelevant(text) {
+      return /打卡|番茄钟|倒计时|提醒|提示音/.test(String(text || ""));
+    }
+
+    function normalizeUsageLogs(logs) {
+      return limitLogs((Array.isArray(logs) ? logs : []).filter((log) => log && log.text && isUsageLogRelevant(log.text)));
+    }
+
+    function mergeUsageLogs(remoteLogs, localLogs) {
+      const byId = new Map();
+      [...(Array.isArray(remoteLogs) ? remoteLogs : []), ...(Array.isArray(localLogs) ? localLogs : [])].forEach((log) => {
+        if (log && log.id && log.text && isUsageLogRelevant(log.text)) {
+          byId.set(log.id, log);
+        }
+      });
+      return normalizeUsageLogs([...byId.values()]);
+    }
+
     function clampNumber(value, min, max, fallback) {
       const numeric = Number(value);
       if (!Number.isFinite(numeric)) {
@@ -1166,6 +1415,10 @@
     }
 
     function updateTomatoDurations(id, workMinutes, restMinutes) {
+      if (!canUseTomato(id)) {
+        return;
+      }
+
       const timer = getTomato(id);
       const wasRunning = timer.running;
       const workFallback = timer.workMinutes || DEFAULT_TOMATO_WORK_MINUTES;
@@ -1202,6 +1455,10 @@
     async function saveSharedState() {
       cacheState();
       try {
+        const remoteState = await fetchSharedState();
+        state = mergeSharedState(remoteState, state);
+        tomatoState = state.tomatoes;
+        cacheState();
         const response = await fetch(`${SUPABASE_URL}/rest/v1/${SUPABASE_TABLE}?id=eq.${SHARED_STATE_ID}`, {
           method: "PATCH",
           headers: {
@@ -1224,12 +1481,49 @@
       }
     }
 
+    function mergeTomatoState(remoteTomatoes, localTomatoes) {
+      const next = {};
+      TOMATO_IDS.forEach((id) => {
+        const remote = remoteTomatoes && remoteTomatoes[id] ? remoteTomatoes[id] : createTomatoTimer();
+        const local = localTomatoes && localTomatoes[id] ? localTomatoes[id] : createTomatoTimer();
+        next[id] = canUseTomato(id) ? { ...remote, ...local } : remote;
+      });
+      return next;
+    }
+
+    function mergeSharedState(remoteState, localState) {
+      const remote = remoteState && typeof remoteState === "object" ? remoteState : defaultState();
+      const local = localState && typeof localState === "object" ? localState : state;
+      const role = currentRole();
+      const ownedCheckin = role ? role.ownerId : null;
+      const ownedTodoId = role ? role.ownerId : null;
+
+      const merged = {
+        checkins: { ...remote.checkins },
+        todos: { ...remote.todos },
+        tomatoes: mergeTomatoState(remote.tomatoes, local.tomatoes),
+        usageLogs: mergeUsageLogs(remote.usageLogs, local.usageLogs),
+        changeLogs: mergeChangeLogs(remote.changeLogs || local.changeLogs)
+      };
+
+      if (ownedCheckin) {
+        merged.checkins[ownedCheckin] = local.checkins[ownedCheckin] || remote.checkins[ownedCheckin];
+      }
+
+      if (ownedTodoId) {
+        merged.todos[ownedTodoId] = local.todos[ownedTodoId] || remote.todos[ownedTodoId];
+      }
+
+      return merged;
+    }
+
     async function hydrateSharedState() {
       try {
         state = await fetchSharedState();
         remoteReady = true;
         cacheState();
         renderAll();
+        renderTomatoes();
       } catch (error) {
         remoteReady = false;
         console.warn(error);
@@ -1397,13 +1691,19 @@
     }
 
     function maybeNotifyTomato(id, snapshot) {
+      if (!canUseTomato(id)) {
+        return;
+      }
+
       const timer = getTomato(id);
       if (!timer.running || snapshot.phase !== "rest") {
         return;
       }
 
-      if (snapshot.cycle !== timer.lastNotifiedCycle) {
-        timer.lastNotifiedCycle = snapshot.cycle;
+      const notice = ensureRoleNotice(id);
+      if (snapshot.cycle !== notice.lastCycle) {
+        notice.lastCycle = snapshot.cycle;
+        saveTomatoNotices();
         saveTomatoState();
         sendTomatoNotification();
         playTomatoSound(id);
@@ -1443,6 +1743,9 @@
       const restInput = dock.querySelector("[data-tomato-rest]");
       const startButton = dock.querySelector('[data-tomato-action="start"]');
       const pauseButton = dock.querySelector('[data-tomato-action="pause"]');
+      const resetButton = dock.querySelector('[data-tomato-action="reset"]');
+      const soundStopButton = dock.querySelector("[data-tomato-sound-stop]");
+      const writable = canUseTomato(id);
 
       if (time) {
         time.textContent = formatCountdown(snapshot.remainingMs);
@@ -1456,10 +1759,16 @@
       syncTomatoInput(workInput, timer.workMinutes);
       syncTomatoInput(restInput, timer.restMinutes);
       if (startButton) {
-        startButton.disabled = timer.running;
+        startButton.disabled = timer.running || !writable;
       }
       if (pauseButton) {
-        pauseButton.disabled = !timer.running;
+        pauseButton.disabled = !timer.running || !writable;
+      }
+      if (resetButton) {
+        resetButton.disabled = !writable;
+      }
+      if (soundStopButton) {
+        soundStopButton.disabled = !writable;
       }
     }
 
@@ -1468,6 +1777,10 @@
     }
 
     function startTomato(id) {
+      if (!canUseTomato(id)) {
+        return;
+      }
+
       const timer = getTomato(id);
       if (timer.running) {
         return;
@@ -1488,7 +1801,6 @@
         : checkinStartAt || (now - Math.max(0, pausedOffset));
       timer.pausedRemainingMs = null;
       timer.pausedPhase = null;
-      timer.lastNotifiedCycle = -1;
       saveTomatoState();
       addUsageLog(`${tomatoLabel(id)} 开始。`);
       saveSharedState();
@@ -1497,6 +1809,10 @@
     }
 
     function pauseTomato(id) {
+      if (!canUseTomato(id)) {
+        return;
+      }
+
       const timer = getTomato(id);
       if (!timer.running) {
         return;
@@ -1515,6 +1831,10 @@
     }
 
     function resetTomato(id) {
+      if (!canUseTomato(id)) {
+        return;
+      }
+
       const timer = getTomato(id);
       const workMinutes = timer.workMinutes;
       const restMinutes = timer.restMinutes;
@@ -1523,6 +1843,8 @@
         restMinutes,
         pausedRemainingMs: workMinutes * 60 * 1000
       });
+      ensureRoleNotice(id).lastCycle = -1;
+      saveTomatoNotices();
       saveTomatoState();
       addUsageLog(`${tomatoLabel(id)} 重置。`);
       saveSharedState();
@@ -1540,9 +1862,10 @@
         const elapsed = formatDuration(currentElapsed(checkin));
         const statusText = checkin.running ? "进行中" : checkin.endAt ? "已结束" : "未开始";
         const buttonText = checkin.running ? "结束打卡" : "开始打卡";
+        const writable = canWriteCheckin(item.id);
 
         return `
-          <article class="checkin-card" data-checkin-card="${item.id}">
+          <article class="checkin-card ${writable ? "" : "role-locked"}" data-checkin-card="${item.id}">
             <div class="checkin-head">
               <h3 class="checkin-name title-with-icon">
                 <img class="title-icon" src="${item.icon}" alt="" />
@@ -1561,7 +1884,7 @@
                 <strong>${formatBeijingTime(checkin.endAt)}</strong>
               </div>
             </div>
-            <button class="primary-button ${checkin.running ? "stop" : ""}" type="button" data-checkin="${item.id}">
+            <button class="primary-button ${checkin.running ? "stop" : ""}" type="button" data-checkin="${item.id}" ${writable ? "" : "disabled"}>
               ${buttonText}
             </button>
           </article>
@@ -1574,9 +1897,10 @@
         const tasks = state.todos[list.id] || [];
         const done = tasks.filter((task) => task.completed).length;
         const active = tasks.length - done;
+        const writable = canWriteTodo(list.id);
 
         return `
-          <section class="panel todo-panel" aria-labelledby="${list.id}-todo-title">
+          <section class="panel todo-panel ${writable ? "" : "role-locked"}" aria-labelledby="${list.id}-todo-title">
             <div class="panel-header">
               <div class="todo-title-row">
                 <div>
@@ -1586,14 +1910,14 @@
                   </h2>
                   <p class="panel-note">添加任务，勾选完成，随时删除。</p>
                 </div>
-                <button class="clear-button" type="button" data-clear-completed="${list.id}" ${done === 0 ? "disabled" : ""}>
+                <button class="clear-button" type="button" data-clear-completed="${list.id}" ${done === 0 || !writable ? "disabled" : ""}>
                   清空已完成
                 </button>
               </div>
             </div>
             <form class="todo-form" data-todo-form="${list.id}">
-              <input class="todo-input" type="text" placeholder="${list.placeholder}" autocomplete="off" />
-              <button class="add-button" type="submit">➕ 添加任务</button>
+              <input class="todo-input" type="text" placeholder="${list.placeholder}" autocomplete="off" ${writable ? "" : "disabled"} />
+              <button class="add-button" type="submit" ${writable ? "" : "disabled"}>➕ 添加任务</button>
             </form>
             <div class="stats" aria-label="${list.title}统计">
               <div class="stat">
@@ -1610,20 +1934,20 @@
                 const isEditing = editingTask && editingTask.listId === list.id && editingTask.taskId === task.id;
                 return `
                 <li class="todo-item ${task.completed ? "completed" : ""}" data-list-id="${list.id}" data-task-id="${task.id}">
-                  <input class="todo-checkbox" type="checkbox" ${task.completed ? "checked" : ""} ${isEditing ? "disabled" : ""} aria-label="标记任务完成" />
+                  <input class="todo-checkbox" type="checkbox" ${task.completed ? "checked" : ""} ${isEditing || !writable ? "disabled" : ""} aria-label="标记任务完成" />
                   ${isEditing ? `
                     <form class="edit-form" data-edit-form="${list.id}" data-task-id="${task.id}">
-                      <input class="edit-input" type="text" value="${escapeHtml(task.text)}" aria-label="编辑任务内容" />
+                      <input class="edit-input" type="text" value="${escapeHtml(task.text)}" aria-label="编辑任务内容" ${writable ? "" : "disabled"} />
                       <div class="edit-actions">
-                        <button class="save-button" type="submit">保存</button>
+                        <button class="save-button" type="submit" ${writable ? "" : "disabled"}>保存</button>
                         <button class="cancel-button" type="button" data-cancel-edit>取消</button>
                       </div>
                     </form>
                   ` : `
                     <span class="todo-text">${escapeHtml(task.text)}</span>
                     <div class="task-actions">
-                      <button class="edit-button" type="button" data-edit-task aria-label="编辑任务">编辑</button>
-                      <button class="delete-button" type="button" aria-label="删除任务">删</button>
+                      <button class="edit-button" type="button" data-edit-task aria-label="编辑任务" ${writable ? "" : "disabled"}>编辑</button>
+                      <button class="delete-button" type="button" aria-label="删除任务" ${writable ? "" : "disabled"}>删</button>
                     </div>
                   `}
                 </li>
@@ -1661,6 +1985,20 @@
       renderLogs();
     }
 
+    function applyRoleLock() {
+      const role = currentRole();
+      if (!role) {
+        document.body.classList.add("auth-locked");
+        elements.roleShout.hidden = true;
+        return;
+      }
+
+      document.body.classList.remove("auth-locked");
+      document.body.dataset.role = selectedRole;
+      elements.roleShoutText.textContent = role.shout;
+      elements.roleShout.hidden = false;
+    }
+
     function escapeHtml(value) {
       return String(value)
         .replaceAll("&", "&amp;")
@@ -1679,6 +2017,10 @@
     }
 
     function addUsageLog(text) {
+      if (!isUsageLogRelevant(text)) {
+        return;
+      }
+
       state.usageLogs = limitLogs([
         {
           id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
@@ -1690,6 +2032,10 @@
     }
 
     function toggleCheckin(id) {
+      if (!canWriteCheckin(id)) {
+        return;
+      }
+
       const checkin = state.checkins[id];
       const now = Date.now();
 
@@ -1711,31 +2057,37 @@
     }
 
     function addTask(listId, text) {
+      if (!canWriteTodo(listId)) {
+        return;
+      }
+
       state.todos[listId].unshift({
         id: `${Date.now()}-${Math.random().toString(16).slice(2)}`,
         text,
         completed: false,
         createdAt: Date.now()
       });
-      addUsageLog(`${listName(listId)} 添加任务：“${text}”。`);
       saveSharedState();
       renderAll();
     }
 
     function toggleTask(listId, id) {
-      const task = state.todos[listId].find((item) => item.id === id);
-      const nextCompleted = task ? !task.completed : false;
+      if (!canWriteTodo(listId)) {
+        return;
+      }
+
       state.todos[listId] = state.todos[listId].map((task) => (
         task.id === id ? { ...task, completed: !task.completed } : task
       ));
-      if (task) {
-        addUsageLog(`${listName(listId)} ${nextCompleted ? "完成" : "取消完成"}任务：“${task.text}”。`);
-      }
       saveSharedState();
       renderAll();
     }
 
     function startEditTask(listId, id) {
+      if (!canWriteTodo(listId)) {
+        return;
+      }
+
       editingTask = { listId, taskId: id };
       renderTodos();
       const input = elements.todoBoard.querySelector(".edit-input");
@@ -1751,38 +2103,40 @@
     }
 
     function saveEditedTask(listId, id, text) {
+      if (!canWriteTodo(listId)) {
+        return false;
+      }
+
       const value = text.trim();
       if (!value) {
         return false;
       }
 
-      const oldTask = state.todos[listId].find((task) => task.id === id);
       state.todos[listId] = state.todos[listId].map((task) => (
         task.id === id ? { ...task, text: value } : task
       ));
       editingTask = null;
-      if (oldTask) {
-        addUsageLog(`${listName(listId)} 编辑任务：“${oldTask.text}” 改为 “${value}”。`);
-      }
       saveSharedState();
       renderAll();
       return true;
     }
 
     function deleteTask(listId, id) {
-      const task = state.todos[listId].find((item) => item.id === id);
-      state.todos[listId] = state.todos[listId].filter((task) => task.id !== id);
-      if (task) {
-        addUsageLog(`${listName(listId)} 删除任务：“${task.text}”。`);
+      if (!canWriteTodo(listId)) {
+        return;
       }
+
+      state.todos[listId] = state.todos[listId].filter((task) => task.id !== id);
       saveSharedState();
       renderAll();
     }
 
     function clearCompleted(listId) {
-      const completedCount = state.todos[listId].filter((task) => task.completed).length;
+      if (!canWriteTodo(listId)) {
+        return;
+      }
+
       state.todos[listId] = state.todos[listId].filter((task) => !task.completed);
-      addUsageLog(`${listName(listId)} 清空已完成任务 ${completedCount} 个。`);
       saveSharedState();
       renderAll();
     }
@@ -1790,6 +2144,10 @@
     elements.checkinList.addEventListener("click", (event) => {
       const target = event.target.closest("[data-checkin], [data-checkin-card]");
       if (!target) {
+        return;
+      }
+
+      if (!canWriteCheckin(target.dataset.checkin || target.dataset.checkinCard)) {
         return;
       }
 
@@ -1813,6 +2171,10 @@
         return;
       }
 
+      if (!canWriteTodo(form.dataset.todoForm)) {
+        return;
+      }
+
       event.preventDefault();
       const input = form.querySelector(".todo-input");
       const value = input.value.trim();
@@ -1827,6 +2189,9 @@
     elements.todoBoard.addEventListener("click", (event) => {
       const clearButton = event.target.closest("[data-clear-completed]");
       if (clearButton) {
+        if (!canWriteTodo(clearButton.dataset.clearCompleted)) {
+          return;
+        }
         clearCompleted(clearButton.dataset.clearCompleted);
         return;
       }
@@ -1837,6 +2202,9 @@
       }
 
       if (event.target.closest("[data-edit-task]")) {
+        if (!canWriteTodo(item.dataset.listId)) {
+          return;
+        }
         startEditTask(item.dataset.listId, item.dataset.taskId);
         return;
       }
@@ -1847,11 +2215,17 @@
       }
 
       if (event.target.matches(".delete-button")) {
+        if (!canWriteTodo(item.dataset.listId)) {
+          return;
+        }
         deleteTask(item.dataset.listId, item.dataset.taskId);
         return;
       }
 
       if (event.target.matches(".todo-checkbox")) {
+        if (!canWriteTodo(item.dataset.listId)) {
+          return;
+        }
         toggleTask(item.dataset.listId, item.dataset.taskId);
         return;
       }
@@ -1875,6 +2249,10 @@
           return;
         }
 
+        if (!canUseTomato(tomatoId)) {
+          return;
+        }
+
         if (button.dataset.tomatoAction === "start") {
           requestNotificationPermission();
           unlockTomatoSound(tomatoId);
@@ -1895,15 +2273,33 @@
           return;
         }
 
+        if (!canUseTomato(tomatoId)) {
+          return;
+        }
+
         const workInput = dock.querySelector("[data-tomato-work]");
         const restInput = dock.querySelector("[data-tomato-rest]");
         updateTomatoDurations(tomatoId, workInput.value, restInput.value);
       });
     });
 
-    requestNotificationPermission();
+    const savedRole = sessionStorage.getItem(ROLE_SESSION_KEY);
+    if (savedRole && ROLES[savedRole]) {
+      selectedRole = savedRole;
+      applyRoleLock();
+    }
+
+    elements.loginScreen.querySelectorAll("[data-role-select]").forEach((button) => {
+      button.addEventListener("click", () => {
+        selectRole(button.dataset.roleSelect);
+        applyRoleLock();
+      });
+    });
+
     renderAll();
     renderTomatoes();
+    applyRoleLock();
+    requestNotificationPermission();
     hydrateSharedState();
     setInterval(() => {
       renderClock();
@@ -1917,13 +2313,15 @@
 
       try {
         state = await fetchSharedState();
+        tomatoState = state.tomatoes || tomatoState;
         cacheState();
         renderAll();
+        renderTomatoes();
       } catch (error) {
         remoteReady = false;
         console.warn(error);
       }
-    }, 15000);
+    }, 5000);
   </script>
 </body>
 </html>
